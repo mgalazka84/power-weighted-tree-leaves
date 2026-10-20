@@ -1,0 +1,54 @@
+# Power-weighted tree leaves — reproducibility code
+
+Python code for numerical checks and the analytic scale figure associated with
+*A centering transition for leaf counts in power-weighted recursive trees*.
+
+## Run
+
+Tested with Python 3.12. Dependency versions used for the checks are pinned in
+`requirements.txt`.
+
+```bash
+python -m venv .venv
+# Linux/macOS:
+source .venv/bin/activate
+# Windows PowerShell:
+# .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python checks/verify_and_plot.py
+```
+
+The script performs:
+
+- exhaustive enumeration for eight small-tree parameter cases;
+- 1,000 seeded checks of deterministic coupling identities and deletion bounds;
+- twelve evaluations of the expected internal-vertex count for tree sizes up to
+  one million;
+- generation of the analytic exponent plot.
+
+## Generated files
+
+Running the script creates these local outputs, which are ignored by Git:
+
+- `checks/verification_results.json` — numerical results;
+- `figures/centering_scales.pdf` and `figures/centering_scales.png` — figure.
+
+The terminal summary reports the number of completed checks. A failed assertion
+stops execution. Run with ordinary Python, without the `-O` flag, so assertions
+remain enabled.
+
+## Numerical scope
+
+A leaf has no children. The code works with the complementary number of
+internal vertices. Parent choices use deterministic label weights proportional
+to `i**(-s)`, with a fixed `s > 1`.
+
+The logarithmic-series error estimate bounds truncation in exact arithmetic;
+it does not enclose floating-point rounding error. The seeded random trials
+exercise deterministic identities and are not a distributional accuracy study.
+The figure plots analytic exponents, rather than simulation estimates.
+Numerical checks support the mathematical arguments and do not replace proofs.
+
+## Authors
+
+Marek Gałązka and Hanna Wdowicka.

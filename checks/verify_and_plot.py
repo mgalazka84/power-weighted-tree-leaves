@@ -1,4 +1,4 @@
-"""Reproducible numerical checks and the manuscript's analytic scale plot.
+"""Reproducible numerical checks and the manuscript's explanatory figures.
 
 Run from any directory: python checks/verify_and_plot.py
 Dependencies: Python 3, numpy, scipy, matplotlib.
@@ -14,6 +14,7 @@ from scipy.special import gamma, zeta
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from plot_growth_example import plot_growth_example
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -86,17 +87,19 @@ def plot_scales():
                          'pdf.fonttype':42,'savefig.bbox':'tight'})
     s = np.linspace(1.28,1.98,500)
     star = 1+1/np.sqrt(2)
-    fig, ax = plt.subplots(figsize=(6.3,2.3))
+    fig, ax = plt.subplots(figsize=(6.3,2.2))
     ax.axvspan(1.28,star,color='#e6a468',alpha=.15,zorder=0)
     ax.axvspan(star,1.98,color='#4b94b3',alpha=.10,zorder=0)
-    ax.plot(s,2-s,color='#b75c23',lw=2,label=r'Birth restriction: $2-s$')
+    ax.plot(s,2-s,color='#b75c23',lw=2,label=r'Mean correction: $2-s$')
     ax.plot(s,1/(2*s),color='#176b89',lw=2,label=r'Gaussian scale: $1/(2s)$')
     ax.plot(s,2/s-1,color='#777777',lw=1.4,ls='--',label=r'Remainder bound: $2/s-1$')
     ax.axvline(star,color='#444444',ls=':',lw=1)
     ax.scatter([star],[1/(2*star)],color='#202020',s=20,zorder=4)
-    ax.text(star+.012,.70,r'$s_*=1+1/\sqrt{2}$',fontsize=9)
-    ax.set(xlim=(1.28,1.98),ylim=(.04,.77),xlabel=r'Power $s$',ylabel=r'Exponent of $n$')
-    ax.legend(frameon=False,loc='upper right',bbox_to_anchor=(.985,.77),fontsize=8)
+    ax.text(1.295,.73,'Omitted bias dominates',color='#8a431c',fontsize=8)
+    ax.text(star+.016,.73,'Omitted bias is negligible',color='#176b89',fontsize=8)
+    ax.text(star-.016,.09,r'$s_*=1+1/\sqrt{2}$',fontsize=8.5,ha='right')
+    ax.set(xlim=(1.28,1.98),ylim=(.04,.79),xlabel=r'Power $s$',ylabel=r'Exponent of $n$')
+    ax.legend(frameon=False,loc='upper right',bbox_to_anchor=(.995,.87),fontsize=8)
     ax.grid(axis='y',alpha=.15)
     fig.tight_layout(pad=.5)
     (ROOT/'figures').mkdir(exist_ok=True)
@@ -132,6 +135,7 @@ def main():
             report['mean_expansion'].append(dict(n=n,s=s,mean=mu,
                 bias_ratio=ratio,series_truncation_bound=error,
                 gaussian_scale=math.sqrt(B)*n**(1/(2*s))))
+    plot_growth_example()
     plot_scales()
     out=ROOT/'checks'/'verification_results.json'
     out.write_text(json.dumps(report,indent=2)+'\n')

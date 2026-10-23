@@ -6,8 +6,7 @@ with *Explicit centering for leaf counts in power-weighted recursive trees*.
 ## Run
 
 Python 3.11 or newer is required by the pinned dependencies in `requirements.txt`.
-The revised checks were run with Python 3.12.14. The preceding version was also
-reported to run successfully with Python 3.11 in the referee's independent check.
+The checks were run with Python 3.12.14.
 
 ```bash
 python -m venv .venv
@@ -57,7 +56,11 @@ and Figure 2 plots analytic exponents. Numerical checks supplement the proofs.
 
 ## Citation
 
-Software citation metadata is provided in `CITATION.cff`. No archival DOI has
-been assigned in this repository version.
+Software citation metadata is provided in `CITATION.cff`. Cite the versioned
+[GitHub release v1.0.1](https://github.com/mgalazka84/power-weighted-tree-leaves/releases/tag/v1.0.1).
 
 Marek Gałązka and Hanna Wdowicka.
+
+## License
+
+The code is distributed under the [MIT License](LICENSE).

@@ -11,6 +11,7 @@ import math
 from collections import Counter
 import numpy as np
 from scipy.special import gamma, zeta
+from scipy.integrate import quad
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -24,6 +25,20 @@ def constants(s):
     B = (2**(1/s)-1) * A
     D = c / ((s-1)*(2-s)) if 1 < s < 2 else None
     return c, A, B, D
+
+def third_coefficient(s):
+    """E_s for internal vertices (negative sign for the leaf mean)."""
+    if not 1 < s < 2:
+        raise ValueError('The third power correction requires 1 < s < 2.')
+    return (1/zeta(s,1))**(2/s)*gamma(2-2/s)/(2-s)
+
+def coefficient_integral(s):
+    """Independent quadrature of E_s; split at 1 and invert the tail."""
+    low=quad(lambda y: -np.expm1(-y)/y if y else 1.0,0,1,
+             weight='alg',wvar=(1-2/s,0),epsabs=1e-11)[0]
+    high=quad(lambda x: -np.expm1(-1/x) if x else 1.0,0,1,
+              weight='alg',wvar=(2/s-2,0),epsabs=1e-11)[0]
+    return (1/zeta(s,1))**(2/s)*(low+high)/s
 
 def mean_direct(n, s):
     w = np.arange(1, n, dtype=float)**(-s)
@@ -82,35 +97,35 @@ def coupling_check(n, s, rng):
     return energy, M
 
 def plot_scales():
-    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,
+    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':8,
                          'axes.spines.top':False,'axes.spines.right':False,
                          'pdf.fonttype':42,'savefig.bbox':'tight'})
-    s = np.linspace(1.28,1.98,500)
-    star = 1+1/np.sqrt(2)
-    fig, ax = plt.subplots(figsize=(6.3,2.2))
-    ax.axvspan(1.28,star,color='#e6a468',alpha=.15,zorder=0)
-    ax.axvspan(star,1.98,color='#4b94b3',alpha=.10,zorder=0)
-    ax.plot(s,2-s,color='#b75c23',lw=2,label=r'Mean correction: $2-s$')
+    s=np.linspace(1.27,1.98,500)
+    star=1+1/np.sqrt(2);s0=(1+np.sqrt(3))/2
+    fig,ax=plt.subplots(figsize=(3.45,2.45))
+    ax.plot(s,2-s,color='#b75c23',lw=1.7,label=r'First bias: $2-s$')
     ax.plot(s,1/(2*s),color='#176b89',lw=2,label=r'Gaussian scale: $1/(2s)$')
-    ax.plot(s,2/s-1,color='#777777',lw=1.4,ls='--',label=r'Remainder bound: $2/s-1$')
-    ax.axvline(star,color='#444444',ls=':',lw=1)
-    ax.scatter([star],[1/(2*star)],color='#202020',s=20,zorder=4)
-    ax.text(1.295,.73,'Omitted bias dominates',color='#8a431c',fontsize=8)
-    ax.text(star+.016,.73,'Omitted bias is negligible',color='#176b89',fontsize=8)
-    ax.text(star-.016,.09,r'$s_*=1+1/\sqrt{2}$',fontsize=8.5,ha='right')
-    ax.set(xlim=(1.28,1.98),ylim=(.04,.79),xlabel=r'Power $s$',ylabel=r'Exponent of $n$')
-    ax.legend(frameon=False,loc='upper right',bbox_to_anchor=(.995,.87),fontsize=8)
+    ax.plot(s,2/s-1,color='#82518c',lw=1.6,ls='-.',label=r'Second bias: $2/s-1$')
+    ax.plot(s,np.maximum(0,1+1/s-s),color='#555555',lw=1.3,ls='--',
+            label=r'New error: $\max(0,1+1/s-s)$')
+    for x,label in ((s0,r'$s_0$'),(1.5,r'$3/2$'),(star,r'$s_\star$')):
+        ax.plot([x,x],[0,1/(2*x)],color='#aaaaaa',ls=':',lw=.8)
+        ax.scatter([x],[1/(2*x)],color='#202020',s=12,zorder=4)
+        ax.text(x,-.055,label,fontsize=8,ha='center')
+    ax.set(xlim=(1.27,1.98),ylim=(-.075,.8),xlabel=r'Power $s$',ylabel=r'Exponent of $n$')
+    ax.legend(frameon=False,loc='upper right',fontsize=7)
     ax.grid(axis='y',alpha=.15)
-    fig.tight_layout(pad=.5)
+    fig.tight_layout(pad=.4)
     (ROOT/'figures').mkdir(exist_ok=True)
-    fig.savefig(ROOT/'figures'/'centering_scales.pdf')
-    fig.savefig(ROOT/'figures'/'centering_scales.png',dpi=200)
+    fig.savefig(ROOT/'figures/centering_scales.pdf')
+    fig.savefig(ROOT/'figures/centering_scales.png',dpi=220)
     plt.close(fig)
 
 def main():
     rng = np.random.default_rng(20261020)
     report = {'seed':20261020, 'enumeration':[], 'coupling_trials':0,
-              'mean_expansion':[], 'notes':[
+              'mean_expansion':[], 'third_term':[], 'boundary_s2':[],
+              'coefficient_quadrature':[], 'notes':[
                   'Series error estimates exclude floating-point roundoff.',
                   'Mean ratios may converge slowly; finite-n checks are not proofs.',
                   'The figure plots proved exponents, not simulation estimates.']}
@@ -135,6 +150,24 @@ def main():
             report['mean_expansion'].append(dict(n=n,s=s,mean=mu,
                 bias_ratio=ratio,series_truncation_bound=error,
                 gaussian_scale=math.sqrt(B)*n**(1/(2*s))))
+    for s in (1.3,1.45,1.6,1.8):
+        c,A,B,D=constants(s)
+        E=third_coefficient(s)
+        integral=coefficient_integral(s)
+        assert abs(integral-E)<1e-10*max(1,E)
+        report['coefficient_quadrature'].append(dict(s=s,closed_form=E,integral=integral))
+        for n in (10000,100000,1000000):
+            mu,error=mean_series(n,s)
+            residual=mu-A*n**(1/s)+D*n**(2-s)
+            report['third_term'].append(dict(n=n,s=s,internal_mean=mu,
+                Q_n=residual/n**(2/s-1),E_s=E,
+                error_after_third_term=residual-E*n**(2/s-1),
+                proved_error_scale=1+n**(1+1/s-s),series_truncation_bound=error))
+    c,A,B,_=constants(2)
+    for n in (10000,100000,1000000):
+        mu,error=mean_series(n,2)
+        report['boundary_s2'].append(dict(n=n,internal_mean=mu,
+            residual=mu-A*np.sqrt(n)+c/2*np.log(n),series_truncation_bound=error))
     plot_growth_example()
     plot_scales()
     out=ROOT/'checks'/'verification_results.json'
@@ -142,6 +175,9 @@ def main():
     print(json.dumps({'enumerated_cases':len(report['enumeration']),
                       'coupling_trials':report['coupling_trials'],
                       'large_n_cases':len(report['mean_expansion']),
+                      'third_term_cases':len(report['third_term']),
+                      'boundary_cases':len(report['boundary_s2']),
+                      'coefficient_integrals':len(report['coefficient_quadrature']),
                       'all_assertions_passed':True,'results':str(out)},indent=2))
 
 if __name__ == '__main__':
